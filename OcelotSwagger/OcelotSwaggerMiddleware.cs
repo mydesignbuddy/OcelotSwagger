@@ -51,6 +51,7 @@
 
         public async Task InvokeAsync(HttpContext httpContext)
         {
+            
             var path = httpContext.Request.Path.Value;
 
             string cacheEntry = null;
@@ -82,28 +83,28 @@
             else if (this._options.SwaggerEndPoints.Exists(i => i.Url == path))
             {
                 var ocelotConfig = this._internalConfiguration.Get().Data;
-                var matchedReRoute = (from i in ocelotConfig.ReRoutes
-                                      from j in i.DownstreamReRoute
+                var matchedRoute = (from i in ocelotConfig.Routes
+                                      from j in i.DownstreamRoute
                                       where j.UpstreamPathTemplate.OriginalValue.Equals(
                                           path,
                                           StringComparison.OrdinalIgnoreCase)
                                       select j).ToList();
-                if (matchedReRoute.Count > 0)
+                if (matchedRoute.Count > 0)
                 {
-                    var matchedHost = matchedReRoute.First().DownstreamAddresses.First();
-                    var anotherReRoutes = (from i in ocelotConfig.ReRoutes
-                                           from j in i.DownstreamReRoute
+                    var matchedHost = matchedRoute.First().DownstreamAddresses.First();
+                    var anotherRoutes = (from i in ocelotConfig.Routes
+                                           from j in i.DownstreamRoute
                                            where j.DownstreamAddresses.Exists(
                                                k => k.Host == matchedHost.Host && k.Port == matchedHost.Port)
                                            select j).ToList();
 
                     var templates = this._options.Cache?.Enabled == true
-                                        ? new List<CachedPathTemplate>(anotherReRoutes.Count)
+                                        ? new List<CachedPathTemplate>(anotherRoutes.Count)
                                         : null;
 
                     var newContent = await this.ReadContentAsync(httpContext);
 
-                    foreach (var downstreamReRoute in anotherReRoutes)
+                    foreach (var downstreamReRoute in anotherRoutes)
                     {
                         var newDownstreamPathTemplate = PathTemplateRegex.Replace(
                             downstreamReRoute.DownstreamPathTemplate.Value,
